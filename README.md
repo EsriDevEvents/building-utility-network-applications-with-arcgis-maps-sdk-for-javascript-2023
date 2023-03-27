@@ -1,8 +1,6 @@
-> **Note:** Please follow the [repository conventions](https://github.com/EsriDevEvents/contributor-guides/blob/main/conventions.md#conventions-for-repositories) and [slugify](https://slugify.online/) the title of your repo
+# Network Management with ArcGIS: Building Utility Network applications with the ArcGIS Maps SDK for JavaScript
 
-# Name of the session
-
-[Description of the session]
+Esri's next generation network technology, the utility network, is completely based on web services. This makes it ideally suited for building web applications. Are you ready to move beyond the desktop and develop browser-based applications for your user community? This session covers the growing utility network capabilities using the ArcGIS Maps SDK for JavaScript. We'll discuss editing, visualizing, and tracing utility networks in a web browser.
 
 ## Slides and recording
 
