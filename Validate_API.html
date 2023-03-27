@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>UN JS API | Validate Network Topology | ArcGIS API for JavaScript 4.25</title>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.25/esri/themes/light/main.css" />
+  <script src="https://js.arcgis.com/4.25/"></script>
+  <style media="screen">
+    #myDiv {
+      top: 20px;
+      color: #444;
+      right: 20px;
+      position: absolute;
+      z-index: 40;
+      background-color: #fff;
+      padding: 5px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      width: 250px;
+    }
+
+    #myLabelTitle {
+      padding: 10px;
+    }
+
+    #myLabelStatus {
+      font-size: small;
+    }
+
+    html,
+    body,
+    #viewDiv {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      margin: 0;
+    }
+  </style>
+
+  <script>
+    require([
+      "esri/Graphic",
+      "esri/WebMap",
+      "esri/layers/FeatureLayer",
+      "esri/views/MapView",
+      "esri/widgets/Legend",
+    ], function(
+      Graphic,
+      WebMap,
+      FeatureLayer,
+      MapView,
+      Legend,
+    ) {
+      console.log("Sign in to access the data in this sample.");
+      console.log("username: editor01 password: S7#i2LWmYH75");
+      let utilityNetwork;
+      let dirtyAreasFeatureLayer;
+      let electricDistributionLineFeatureLayer;
+      let myVersion = "editor01.testVNT";
+      const webMap = new WebMap({
+        portalItem: {
+          // autocasts as new PortalItem()
+          id: "471eb0bf37074b1fbb972b1da70fb310", // webmap id
+        },
+      });
+      webMap.load().then(function() {
+        // Check if webMap contains utility networks.
+        if (webMap.utilityNetworks.length > 0) {
+          // Assigns the utility network at index 0 to utilityNetwork.
+          utilityNetwork = webMap.utilityNetworks.getItemAt(0);
+          // Triggers the loading of the UtilityNetwork instance.
+          utilityNetwork.load().then(function() {          
+            // Add dirty areas layer.  
+            let dirtyAreasLayerExists = false;
+            let dirtyAreasFeatureLayer = new FeatureLayer({
+              url: utilityNetwork.networkSystemLayers.dirtyAreasLayerUrl
+            });
+            // Avoid adding the layer more than once.
+            webMap.layers.items.forEach((i) => {
+              if (i.parsedUrl !== null) {
+                if (i.parsedUrl.path === utilityNetwork.networkSystemLayers.dirtyAreasLayerUrl) {
+                  dirtyAreasLayerExists = true;
+                }
+              }
+            });
+            if (!dirtyAreasLayerExists) {
+              let renderer = {
+                type: "simple",  // autocasts as new SimpleRenderer()
+                symbol: {
+                  type: "simple-fill",  // autocasts as new SimpleFillSymbol()
+                  style: "forward-diagonal",
+                  color: [128, 128, 255, 0.5],
+                  outline: {  // autocasts as new SimpleLineSymbol()
+                    width: 2.5,
+                    color: [128, 128, 255, 1]
+                  }
+                }
+              };              
+              dirtyAreasFeatureLayer.renderer = renderer;
+              webMap.add(dirtyAreasFeatureLayer);  
+              // Change the Feature Layer to a version with dirty areas (only for the purpose of this sample)
+              dirtyAreasFeatureLayer.gdbVersion = myVersion;
+            }
+            // Used for adding features -> creating dirty areas.
+            electricDistributionLineFeatureLayer = new FeatureLayer({
+              url: "https://sampleserver7.arcgisonline.com/server/rest/services/UtilityNetwork/NapervilleElectricV5/FeatureServer/3"
+            });
+            electricDistributionLineFeatureLayer.gdbVersion = myVersion;
+
+            myLabelStatus.innerHTML = "Ready.";
+            setTimeout(() => {
+              myLabelStatus.innerHTML = "";
+            }, 3500);            
+          });
+        }
+      });
+      const view = new MapView({
+        map: webMap,
+        container: "viewDiv",
+        center: [-88.1500107, 41.7837140],
+        zoom: 15,
+      });
+      view.when(() => {
+        const legend = new Legend({
+          view: view,
+        });
+        // Add widget to the bottom left corner of the view
+        view.ui.add(legend, "bottom-left");
+        btnAddFeatures.addEventListener('click', () => {
+          addFeatures();
+        });
+        btnValidateCurrentExtent.addEventListener('click', () => {
+          vntCurrentExtent();
+        });
+        myLabelStatus.innerHTML = "Loading resources...";
+      });
+
+      function addFeatures() {
+        const options = {
+          returnServiceEditsOption: "original-and-current-features",
+          returnEditMoment: true
+        };
+        let connectorFeature = new Graphic({
+          geometry: {
+            type: "polyline", // autocasts as new Polyline()
+            spatialReference: utilityNetwork.spatialReference,
+            paths: [
+              [
+                [1032252.6046055965, 1862709.8517080322, 0, null],
+                [1032890.4763613455, 1863725.239769116, 0, null]
+              ]
+            ]
+          },
+          attributes: {
+            assetgroup: 2,
+            assettype: 0,
+            associationstatus: 0,
+            isconnected: 2,
+            fromdeviceterminal: 0,
+            todeviceterminal: 0
+          }
+        });
+        let busbarFeature = new Graphic({
+          geometry: {
+            type: "polyline", // autocasts as new Polyline()
+            spatialReference: utilityNetwork.spatialReference,
+            paths: [
+              [
+                [1032859.7428270131, 1869630.506173782, 0, null],
+                [1033852.6988463439, 1868253.6066966132, 0, null],
+                [1036527.06095168, 1868240.3675498665, 0, null]
+              ]
+            ]
+          },
+          attributes: {
+            assetgroup: 1,
+            assettype: 0,
+            associationstatus: 0,
+            isconnected: 2,
+            fromdeviceterminal: 0,
+            todeviceterminal: 0
+          }
+        });
+        let edits = {
+          addFeatures: [connectorFeature, busbarFeature]
+        };
+        electricDistributionLineFeatureLayer.applyEdits(edits, options).then((editsResult) => {
+          myLabelStatus.innerHTML = "New features were successfully added.";
+          setTimeout(() => {
+            myLabelStatus.innerHTML = "";
+          }, 3500);
+        });
+      }
+
+      function vntCurrentExtent() {
+        myLabelStatus.innerHTML = "Executing.";
+        utilityNetwork
+          .validateNetworkTopology({
+            validateArea: view.extent,
+            gdbVersion: myVersion,
+          })
+          .then((resolvedVal) => {
+            myLabelStatus.innerHTML = "Validate Succesful.";
+            setTimeout(() => {
+              myLabelStatus.innerHTML = "";
+            }, 3500);
+          })
+          .catch((error) => {
+            myLabelStatus.innerHTML = "Status: " + error.message;
+            setTimeout(() => {
+              myLabelStatus.innerHTML = "";
+            }, 3500);
+          });
+      }
+    });
+  </script>
+</head>
+
+<body>
+  <div id="myDiv">
+    <div>
+      <label id="myLabelTitle">Validate Network Topology</label>
+    </div>
+    <button id="btnAddFeatures">Add Features</button>
+    <button id="btnValidateCurrentExtent">Validate Current Extent</button>
+    <div>
+      <label id="myLabelStatus"></label>
+    </div>
+  </div>
+  <div id="viewDiv"></div>
+</body>
+
+</html>

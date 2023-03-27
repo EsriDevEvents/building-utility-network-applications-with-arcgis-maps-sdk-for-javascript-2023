@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>View Associations Widget | UN JS API 4.26</title>
+  <script src="https://js.arcgis.com/4.26/"></script>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.26/esri/themes/light/main.css" />
+  <style media="screen">
+    html,
+    body,
+    #viewDiv {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      margin: 0;
+    }
+  </style>
+
+  <script>
+    require([
+      "esri/Map",
+      "esri/WebMap",
+      "esri/geometry/projection",
+      "esri/geometry/SpatialReference",
+      "esri/layers/support/TileInfo",
+      "esri/views/MapView",
+      "esri/widgets/UtilityNetworkAssociations",
+    ], function(
+      Map,
+      WebMap,
+      projection,
+      SpatialReference,
+      TileInfo,
+      MapView,
+      UtilityNetworkAssociations
+    ) {
+      self.useDefaults?.(arguments);
+      console.log("Sign in to access the data in this sample.");
+      console.log("username: viewer01 password: I68VGU^nMurF");
+      const webMap = new WebMap({
+        portalItem: {
+          // autocasts as new PortalItem()
+          id: "471eb0bf37074b1fbb972b1da70fb310", // webmap id
+        },
+      });
+      const tileInfo = TileInfo.create({
+        spatialReference: {
+          wkid: 102100,
+        },
+        numLODs: 32,
+      });
+      var utilityNetwork;
+      webMap.load().then(function() {
+        console.log("Map is loaded");
+        // Check if webMap contains utility networks.
+        if (webMap.utilityNetworks.length > 0) {
+          // Assigns the utility network at index 0 to utilityNetwork.
+          utilityNetwork = webMap.utilityNetworks.getItemAt(0);
+          // Triggers the loading of the UtilityNetwork instance.
+          utilityNetwork.load().then(function() {
+            console.log("Utility Network is loaded");
+          });
+        }
+        const view = new MapView({
+          map: webMap,
+          container: "viewDiv",
+          center: [-88.14811693423965, 41.78211862373845],
+          zoom: 23,
+          constraints: {
+            lods: tileInfo.lods,
+            snapToZoom: false,
+          },
+        });
+        view.when(async () => {
+          console.log("View is loaded");
+          // Initialize the UtilityNetworkAssociations widget 
+          const unAssociations = new UtilityNetworkAssociations({
+            view: view,
+            utilityNetwork: utilityNetwork,
+            // autoRefreshAssociations: false,
+            visibleElements: {
+              maxAllowableAssociationsSlider: true,
+            },
+            // maxAllowableAssociationsSliderMin: 1000,
+            // maxAllowableAssociationsSliderMax: 2000,
+            // maxAllowableAssociationsSliderStep: 100,
+            // maxAllowableAssociations: 1300,
+            // showArrowsConnectivity: true,
+            // showArrowsStructuralAttachment: true,
+          });
+          // Add the widget to the view
+          view.ui.add(unAssociations, "top-right");
+        });
+      });
+    });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+</body>
+
+</html>

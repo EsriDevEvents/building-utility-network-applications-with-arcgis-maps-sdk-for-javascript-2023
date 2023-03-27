@@ -1,0 +1,136 @@
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>UN JS API | View Connectivity and Structural Attachment Associations | ArcGIS API for JavaScript 4.23</title>
+  <style>
+    html,
+    body,
+    #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+
+    #ctrlDiv {
+      top: 10px;
+      color: #444;
+      height: auto;
+      font-family: arial;
+      right: 10px;
+      margin: 5px;
+      padding: 5px;
+      position: absolute;
+      width: 305px;
+      z-index: 40;
+      background-color: #fff;
+    }
+  </style>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.23/esri/themes/light/main.css" />
+  <script src="https://js.arcgis.com/4.23/"></script>
+
+  <script>
+    require([
+      "dojo/dom",
+      "dojo/on",
+      "esri/Basemap",
+      "esri/Graphic",
+      "esri/WebMap",
+      "esri/rest/networks/support/SynthesizeAssociationGeometriesParameters",
+      "esri/rest/networks/synthesizeAssociationGeometries",
+      "esri/views/MapView",
+    ], function(
+      dom,
+      on,
+      Basemap,
+      Graphic,
+      WebMap,
+      SynthesizeAssociationGeometriesParameters,
+      synthesizeAssociationGeometries,
+      MapView,
+    ) {
+      console.log("Sign in to access the data in this sample.");
+      console.log("username: viewer01 password: I68VGU^nMurF");
+      let utilityNetwork;
+      // Connect click events to UI buttons
+      on(dom.byId("btnShowAssociations"), "click", showAssociations);
+      on(dom.byId("btnRemoveAssociations"), "click", function() {
+        view.graphics.removeAll()
+      });
+      const webMap = new WebMap({
+        portalItem: {
+          portal: {
+            url: "https://sampleserver7.arcgisonline.com/portal"
+          },
+          id: "cff20b71fdae4b3393b530b0099e4390"
+        }
+      });
+      webMap.basemap = Basemap.fromId("gray-vector");
+      const view = new MapView({
+        map: webMap,
+        container: "viewDiv"
+      });
+      view.when(async function() {
+        // Check if webMap contains utility networks.
+        if (webMap.utilityNetworks.length > 0) {
+          // Assigns the utility network at index 0 to utilityNetwork. 
+          utilityNetwork = webMap.utilityNetworks.getItemAt(0);
+          // Triggers the loading of the UtilityNetwork instance.
+          await utilityNetwork.load();
+        }
+      });
+      async function showAssociations() {
+        view.graphics.removeAll();
+        // Define parameters required to obtain associations whithin a specific extent.
+        const associationParameters = new SynthesizeAssociationGeometriesParameters({
+          returnConnectivityAssociations: true,
+          returnAttachmentAssociations: true,
+          extent: view.extent,
+          outSpatialReference: utilityNetwork.spatialReference,
+          maxGeometryCount: 500, // Useful to avoid slowing down the operation.
+        });
+        // Synthesize associations
+        synthesizeAssociationGeometries.synthesizeAssociationGeometries(utilityNetwork.networkServiceUrl, associationParameters)
+          .then(async function(results) {
+            // Use results.
+            if (!results.maxGeometryCountExceeded) {
+              view.graphics.addMany(
+                results.associations.map(a => {
+                  return new Graphic({
+                    geometry: {
+                      type: "polyline",
+                      paths: a.geometry.paths,
+                      spatialReference: a.geometry.spatialReference,
+                    },
+                    symbol: {
+                      type: "simple-line",
+                      color: (a.associationType === "connectivity") ? [190, 41, 236] : [57, 255, 20], // Connectivity: Purple; Attachment: Green
+                      width: 4,
+                    }
+                  })
+                })
+              );
+            } else {
+              console.log("The number of associations found exceeded the maximum allowable number. Check your parameters or try querying a smaller area.");
+            }
+          })
+          .catch(function(error) {
+            console.log(error);
+          });
+      }
+    });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+  <div id="ctrlDiv">
+    <button id="btnShowAssociations" style="width:150px">Show Associations</button>
+    <button id="btnRemoveAssociations" style="width:150px">Remove Associations</button>
+  </div>
+</body>
+
+</html>
